@@ -1,15 +1,27 @@
-require("dotenv").config();
+import { ExpressAuth } from "@auth/express";
 
-const express = require("express");
-const route = require("./src/route/index");
-const db = require("./src/utils/database");
+import dotenv from "dotenv";
+import express from "express";
+import router from "./src/route/index.js";
+import { initSQL } from "./src/utils/database.js";
+import google from "@auth/express/providers/google";
+import cookieParser from "cookie-parser";
+// Load environment variables
+dotenv.config();
 const app = express();
 const port = process.env.PORT;
+const jwt_secret = process.env.JWT_SECRET;
 
+app.use(cookieParser());
 app.use(express.json());
-app.use("/", route);
+// app.set("trust proxy", true);
+// app.use("/auth/*", ExpressAuth({ providers: [google] }));
+
+app.use("/", router);
 
 app.listen(port, async () => {
-	await db.initSQL();
+	await initSQL();
 	console.log(`Example app listening on port ${port}`);
 });
+
+export { jwt_secret };

@@ -1,7 +1,13 @@
-const express = require("express");
+import express from "express";
+import { getUserByID, userLogin, userRegister } from "./userController.js";
+import { validateIntegerParams } from "../../middleware/validator.js";
+import { userRegisterDB } from "../../utils/database.js";
+import auth from "../../middleware/auth.js";
+
 const router = express.Router();
-const user = require("./userController");
 
-router.get("/:id", user.getUserByID);
+router.get("/:id", auth, validateIntegerParams, getUserByID);
+router.post("/login", userLogin);
+router.post("/register", userRegister);
 
-module.exports = router;
+export default router;

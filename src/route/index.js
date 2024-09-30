@@ -1,12 +1,7 @@
-require("dotenv").config();
-
-const express = require("express");
-const initSQL = require("../utils/database");
-const user = require("./User/user");
+import express from "express";
+import user from "./User/user.js";
 
 const router = express.Router();
-const port = process.env.PORT;
-let conn = null;
 
 router.get("/", async (req, res) => {
 	res.send("Hello World");
@@ -14,4 +9,4 @@ router.get("/", async (req, res) => {
 
 router.use("/user/", user);
 
-module.exports = router;
+export default router;
