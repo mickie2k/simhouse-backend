@@ -10,10 +10,20 @@ export default async function auth(req, res, next) {
 
 		const authToken = req.cookies.token;
 		const user = jwt.verify(authToken, jwt_secret);
-		req.uid = user.uid;
+		req.uid = parseInt(user.uid);
 		req.role = user.role;
 		next();
 	} catch (error) {
 		res.status(500).send("Token Invalid");
 	}
+}
+
+export function checkUserRole(requiredRole) {
+	return (req, res, next) => {
+		if (req.role !== requiredRole) {
+			return res.status(403).send("Access Denied");
+		}
+
+		next();
+	};
 }

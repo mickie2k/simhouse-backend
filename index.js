@@ -5,6 +5,7 @@ import express from "express";
 import router from "./src/route/index.js";
 import { initSQL } from "./src/utils/database.js";
 import google from "@auth/express/providers/google";
+import cors from "cors";
 import cookieParser from "cookie-parser";
 // Load environment variables
 dotenv.config();
@@ -16,6 +17,12 @@ app.use(cookieParser());
 app.use(express.json());
 // app.set("trust proxy", true);
 // app.use("/auth/*", ExpressAuth({ providers: [google] }));
+app.use(
+	cors({
+		origin: ["http://127.0.0.1:3000", "http://localhost:3000"],
+		credentials: true,
+	})
+);
 
 app.use("/", router);
 

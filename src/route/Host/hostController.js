@@ -3,9 +3,9 @@ import md5 from "md5";
 import jwt from "jsonwebtoken";
 import { jwt_secret } from "../../../index.js";
 
-async function getUserByID(req, res) {
+async function gethostByID(req, res) {
 	try {
-		const result = await db.getUserByID(req.params.id);
+		const result = await db.gethostByID(req.params.id);
 		return res.json(result);
 	} catch (error) {
 		res.status(500).json({
@@ -14,10 +14,10 @@ async function getUserByID(req, res) {
 	}
 }
 
-// async function getUserByID2(req, res) {
+// async function gethostByID2(req, res) {
 // 	try {
 // 		const id = req.params.id;
-// 		const result = await db.getUserByID(id);
+// 		const result = await db.gethostByID(id);
 // 		console.log(req.uid + "/" + req.role);
 // 		return res.json(result);
 // 	} catch (error) {
@@ -26,34 +26,23 @@ async function getUserByID(req, res) {
 // 		});
 // 	}
 // }
-export async function getUserName(req, res) {
-	try {
-		const result = await db.getUserNameDB(req.uid);
-		return res.json(result);
-	} catch (error) {
-		res.status(500).json({
-			message: "something went wrong",
-		});
-	}
-}
 
-async function userLogin(req, res) {
+async function hostLogin(req, res) {
 	try {
 		const { username, password } = req.body;
-		const encryptPassword = md5(password);
+
 		if (!username || !password) {
 			return res
 				.status(400)
-				.json({ message: "Username and password are required." });
+				.json({ message: "username and password are required." });
 		}
+		const encryptPassword = md5(password);
 
-		const result = await db.userLoginDB(username, encryptPassword);
+		const result = await db.hostLoginDB(username, encryptPassword);
 		if (result) {
-			const token = jwt.sign(
-				{ uid: result.CustomerID, role: "customer" },
-				jwt_secret,
-				{ expiresIn: "7d" }
-			);
+			const token = jwt.sign({ uid: result.HostID, role: "host" }, jwt_secret, {
+				expiresIn: "7d",
+			});
 			const thisDate = new Date();
 			thisDate.setDate(thisDate.getDate() + 6);
 			res.cookie("token", token, {
@@ -66,28 +55,33 @@ async function userLogin(req, res) {
 		} else {
 			return res
 				.status(401)
-				.json({ message: "Username or password is incorrect." });
+				.json({ message: "username or password is incorrect." });
 		}
 	} catch (error) {
 		res.status(500).json({
 			message: "something went wrong",
+			error: error,
 		});
 	}
 }
 
-async function userRegister(req, res) {
+async function hostRegister(req, res) {
 	try {
-		const { username, password, fname, lname, ctel } = req.body;
+		const { username, password, fname, lname, htel, lat, long, addressDetail } =
+			req.body;
 		const encryptPassword = md5(password);
-		const userData = {
+		const hostData = {
 			username,
 			password: encryptPassword,
 			fname,
 			lname,
-			ctel,
+			htel,
+			lat,
+			long,
+			addressDetail,
 		};
 
-		const result = await db.userRegisterDB(userData);
+		const result = await db.hostRegisterDB(hostData);
 		if (!result) {
 			throw "error";
 		} else {
@@ -100,7 +94,7 @@ async function userRegister(req, res) {
 	}
 }
 
-async function userLogout(req, res) {
+async function hostLogout(req, res) {
 	try {
 		res.clearCookie("token");
 		return res.json({ message: "Logout Success" });
@@ -111,9 +105,9 @@ async function userLogout(req, res) {
 	}
 }
 
-async function bookingFromCustomerID(req, res) {
+async function bookingFromSimID(req, res) {
 	try {
-		const result = await db.bookingFromCustomerIDDB(req.uid);
+		const result = await db.hostBookingFromSimIDDB(req.params.simid, req.uid);
 		return res.json(result);
 	} catch (error) {
 		res.status(500).json({
@@ -124,11 +118,10 @@ async function bookingFromCustomerID(req, res) {
 
 async function scheduleFromBookingID(req, res) {
 	try {
-		const result = await db.scheduleFromBookingIDDB(
+		const result = await db.hostScheduleFromBookingIDDB(
 			req.params.bookingid,
 			req.uid
 		);
-
 		return res.json(result);
 	} catch (error) {
 		res.status(500).json({
@@ -137,40 +130,14 @@ async function scheduleFromBookingID(req, res) {
 	}
 }
 
-async function bookingSim(req, res) {
+async function scheduleFromSimID(req, res) {
 	try {
-		const { simid, scheduleid } = req.body;
-
-		const bookingData = {
-			simid,
-			scheduleid,
-			customerid: req.uid,
-		};
-		const checkSchedule = await db.checkScheduleDB(bookingData);
-		if (!checkSchedule) {
-			return res.status(400).json({
-				message: "The selected time is unavailable. Please try another time.",
-			});
-		}
-		const result = await db.bookingSimDB(bookingData);
-		if (!result) {
-			throw "error";
-		} else {
-			return res.json({ message: "Booking Success" });
-		}
+		const result = await db.hostScheduleFromSimIDDB(req.params.simid, req.uid);
+		return res.json(result);
 	} catch (error) {
 		res.status(500).json({
 			message: "something went wrong",
 		});
 	}
 }
-
-export {
-	getUserByID,
-	userLogin,
-	userRegister,
-	userLogout,
-	bookingFromCustomerID,
-	scheduleFromBookingID,
-	bookingSim,
-};
+export { gethostByID, hostLogin, hostRegister, hostLogout, scheduleFromSimID };
