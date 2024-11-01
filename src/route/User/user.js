@@ -7,6 +7,7 @@ import {
 	scheduleFromBookingID,
 	bookingSim,
 	getUserName,
+	requestCancel,
 } from "./userController.js";
 import { validateIntegerParams } from "../../middleware/validator.js";
 import auth from "../../middleware/auth.js";
@@ -26,4 +27,10 @@ router.get(
 	scheduleFromBookingID
 );
 router.post("/booking", auth, checkUserRole("customer"), bookingSim);
+router.delete(
+	"/booking/:bookingid",
+	auth,
+	checkUserRole("customer"),
+	requestCancel
+);
 export default router;

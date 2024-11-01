@@ -3,6 +3,7 @@ async function getProductAll(req, res) {
 	try {
 		let page = parseInt(req.query?.page) || 1;
 		let limit = parseInt(req.query?.limit) || 30;
+		let type = parseInt(req.query?.type) || null;
 
 		if (limit < 1) {
 			limit = 30; // Reset to default if limit is less than 1
@@ -11,9 +12,14 @@ async function getProductAll(req, res) {
 			page = 1; // Reset to default if page is less than 1
 		}
 		page = (page - 1) * limit;
+		let result;
+		if (type !== null) {
+			result = await db.productAllByTypeDB(type, limit, page);
+		} else {
+			result = await db.productAllDB(limit, page);
+		}
 
-		const result = await db.productAllDB(limit, page);
-		return res.json(result);
+		return await res.json(result);
 	} catch (error) {
 		res.status(500).json({
 			message: "something went wrong",

@@ -25,7 +25,7 @@ app.use(
 );
 
 app.use("/", router);
-
+app.use("/image", express.static("upload"));
 app.listen(port, async () => {
 	await initSQL();
 	console.log(`Example app listening on port ${port}`);

@@ -77,14 +77,13 @@ async function userLogin(req, res) {
 
 async function userRegister(req, res) {
 	try {
-		const { username, password, fname, lname, ctel } = req.body;
+		const { username, password, fname, lname } = req.body;
 		const encryptPassword = md5(password);
 		const userData = {
 			username,
 			password: encryptPassword,
 			fname,
 			lname,
-			ctel,
 		};
 
 		const result = await db.userRegisterDB(userData);
@@ -152,12 +151,31 @@ async function bookingSim(req, res) {
 				message: "The selected time is unavailable. Please try another time.",
 			});
 		}
-		const result = await db.bookingSimDB(bookingData);
-		if (!result) {
+		const [result, status] = await db.bookingSimDB(bookingData);
+		if (!status) {
 			throw "error";
 		} else {
-			return res.json({ message: "Booking Success" });
+			return res.json({ message: "Booking Success", bookingid: result });
 		}
+	} catch (error) {
+		res.status(500).json({
+			message: "something went wrong",
+		});
+	}
+}
+
+export async function requestCancel(req, res) {
+	try {
+		const bookingid = req.params.bookingid;
+		const customerID = req.uid;
+		const result = await db.cancelBookByCustomer(bookingid, customerID);
+
+		const message =
+			result.affectedRows > 0
+				? "Booking has been canceled."
+				: "Booking cannot be canceled.";
+		const status = result.affectedRows > 0;
+		return res.json({ status: status, message: message });
 	} catch (error) {
 		res.status(500).json({
 			message: "something went wrong",

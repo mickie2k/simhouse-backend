@@ -105,7 +105,7 @@ async function hostLogout(req, res) {
 	}
 }
 
-async function bookingFromSimID(req, res) {
+export async function bookingFromSimID(req, res) {
 	try {
 		const result = await db.hostBookingFromSimIDDB(req.params.simid, req.uid);
 		return res.json(result);
@@ -116,10 +116,11 @@ async function bookingFromSimID(req, res) {
 	}
 }
 
-async function scheduleFromBookingID(req, res) {
+export async function scheduleFromBookingID(req, res) {
 	try {
 		const result = await db.hostScheduleFromBookingIDDB(
 			req.params.bookingid,
+			req.params.simid,
 			req.uid
 		);
 		return res.json(result);
@@ -140,4 +141,60 @@ async function scheduleFromSimID(req, res) {
 		});
 	}
 }
+
+export async function confirmBooking(req, res) {
+	try {
+		const result = await db.hostConfirmBookingDB(
+			req.params.bookingid,
+			req.params.simid,
+			req.uid
+		);
+
+		const message =
+			result.affectedRows > 0
+				? "Booking has been confirmed."
+				: "Booking cannot be confirmed.";
+		const status = result.affectedRows > 0;
+		return res.json({ status: status, message: message });
+	} catch (error) {
+		res.status(500).json({
+			message: "something went wrong",
+		});
+	}
+}
+
+export async function uploadSimulator(req, res) {
+	try {
+		// Handle images
+		const simData = {
+			simlistname: req.body.simlistname,
+			listdescription: req.body.listdescription,
+			simtypeid: req.body.simtypeid,
+			priceperhour: req.body.priceperhour,
+			modid: req.body.modid,
+			hostid: req.uid,
+		};
+
+		const file1 = req.files.file1 ? req.files.file1[0].filename : "noimage.jpg";
+		const file2 = req.files.file2 ? req.files.file2[0].filename : "noimage.jpg";
+		const file3 = req.files.file3 ? req.files.file3[0].filename : "noimage.jpg";
+
+		const [result, status] = await db.hostUploadSimulatorDB(
+			simData,
+			file1,
+			file2,
+			file3
+		);
+		if (!status) {
+			throw "error";
+		} else {
+			return res.json({ message: "Upload Success", simid: result });
+		}
+	} catch (error) {
+		res.status(500).json({
+			message: "something went wrong",
+		});
+	}
+}
+
 export { gethostByID, hostLogin, hostRegister, hostLogout, scheduleFromSimID };

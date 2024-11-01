@@ -136,6 +136,20 @@ async function productAllDB(limit, page) {
 		connection.release();
 	}
 }
+export async function productAllByTypeDB(type, limit, page) {
+	const connection = await pool.getConnection();
+	try {
+		const sql =
+			"SELECT * FROM simulatorlist INNER JOIN simulatortypelist ON simulatorlist.simid = simulatortypelist.simid LEFT JOIN simulatormodel ON simulatorlist.ModID = simulatormodel.ModID LEFT JOIN simulatorbrand ON simulatormodel.BrandID = simulatorbrand.BrandID WHERE simulatortypelist.simtypeid = ?  ORDER BY simulatorlist.SimID LIMIT ? OFFSET ? ";
+		const [rows] = await connection.query(sql, [type, limit, page]);
+		return rows;
+	} catch (error) {
+		console.error("Error in productAllDB:", error);
+		return false;
+	} finally {
+		connection.release();
+	}
+}
 
 async function productidDB(simid) {
 	const connection = await pool.getConnection();
@@ -157,7 +171,7 @@ export async function productBookingDB(simid) {
 
 	try {
 		const sql =
-			"SELECT * FROM simulatorschedule WHERE SimID = ? AND Date > NOW() Order by Date , StartTime";
+			"SELECT * FROM simulatorschedule WHERE SimID = ? AND Date BETWEEN NOW() AND (NOW() + INTERVAL 7 DAY) Order by Date , StartTime";
 		const [rows] = await connection.query(sql, [simid]);
 		return rows;
 	} catch (error) {
@@ -204,7 +218,7 @@ async function scheduleFromBookingIDDB(bookingId, customerId) {
 	const connection = await pool.getConnection();
 	try {
 		const sql =
-			"SELECT booking.BookingID,booking.BookingDate,booking.TotalPrice,booking.StatusID,booking.CustomerID,booking.SimID,bookinglist.ScheduleID,simulatorschedule.Price,simulatorschedule.Date,simulatorschedule.StartTime,simulatorschedule.EndTime,simulatorlist.SimListName,simulatorlist.PricePerHour,simulatorlist.HostID,host.FName,host.AddressDetail,host.Lat,host.Long,host.HTel FROM booking LEFT JOIN bookinglist ON booking.BookingID = bookinglist.BookingID LEFT JOIN simulatorschedule ON bookinglist.ScheduleID = simulatorschedule.ScheduleID " +
+			"SELECT booking.BookingID,booking.BookingDate,booking.TotalPrice,booking.StatusID,booking.CustomerID,booking.SimID,bookinglist.ScheduleID,simulatorschedule.Price,simulatorschedule.Date,simulatorschedule.StartTime,simulatorschedule.EndTime,simulatorlist.SimListName,simulatorlist.PricePerHour,simulatorlist.HostID,host.FName,host.AddressDetail,host.Lat,host.Long,host.HTel,simulatorlist.firstimage FROM booking LEFT JOIN bookinglist ON booking.BookingID = bookinglist.BookingID LEFT JOIN simulatorschedule ON bookinglist.ScheduleID = simulatorschedule.ScheduleID " +
 			"LEFT JOIN simulatorlist ON booking.SimID = simulatorlist.SimID LEFT JOIN host ON simulatorlist.HostId = host.HostID WHERE booking.bookingid = ? AND customerid = ? ORDER BY simulatorschedule.StartTime";
 		const [rows] = await connection.query(sql, [bookingId, customerId]);
 		return rows;
@@ -272,16 +286,32 @@ async function bookingSimDB(bookingData) {
 		}
 
 		await connection.commit();
-		return true;
+		return [rows.insertId, true];
 	} catch (error) {
 		console.error("Error in bookingSimDB:", error);
 		await connection.rollback();
-		return false;
+		return [-1, false];
 	} finally {
 		connection.release();
 	}
 }
 
+export async function cancelBookByCustomer(bookingID, customerID) {
+	const connection = await pool.getConnection();
+	try {
+		const sql =
+			"UPDATE booking SET StatusID = 3 WHERE BookingID = ? AND CustomerID = ? AND StatusID = 1";
+
+		const [result] = await connection.query(sql, [bookingID, customerID]);
+
+		return result;
+	} catch (error) {
+		console.error("Error in cancelBookByCustomer:", error);
+		return false;
+	} finally {
+		connection.release();
+	}
+}
 // Host functions
 
 async function hostBookingFromSimIDDB(simid, hostid) {
@@ -303,7 +333,7 @@ async function hostScheduleFromSimIDDB(simid, hostid) {
 	const connection = await pool.getConnection();
 	try {
 		const sql =
-			"SELECT * FROM simulatorlist LEFT JOIN simulatorschedule ON simulatorlist.SimID = simulatorschedule.SimID INNER JOIN bookinglist ON simulatorschedule.ScheduleID = bookinglist.ScheduleID LEFT JOIN booking ON bookinglist.BookingID = booking.BookingID WHERE simulatorlist.SimID = ? AND simulatorlist.hostid = ? ORDER BY booking.BookingID";
+			"SELECT * FROM simulatorlist LEFT JOIN simulatorschedule ON simulatorlist.SimID = simulatorschedule.SimID INNER JOIN bookinglist ON simulatorschedule.ScheduleID = bookinglist.ScheduleID  WHERE simulatorlist.SimID = ? AND simulatorlist.hostid = ? ";
 		const [rows] = await connection.query(sql, [simid, hostid]);
 		return rows;
 	} catch (error) {
@@ -314,16 +344,71 @@ async function hostScheduleFromSimIDDB(simid, hostid) {
 	}
 }
 
-async function hostScheduleFromBookingIDDB(bookingId, simid) {
+async function hostScheduleFromBookingIDDB(bookingId, simid, hostid) {
 	const connection = await pool.getConnection();
 	try {
 		const sql =
-			"SELECT * FROM booking LEFT JOIN bookinglist ON booking.BookingID = bookinglist.BookingID LEFT JOIN simulatorschedule ON bookinglist.ScheduleID = simulatorschedule.ScheduleID LEFT JOIN simulatorlist ON booking.SimID = simulatorlist.SimID WHERE booking.bookingid = ? AND simulatorlist.simid = ? ORDER BY simulatorschedule.StartTime";
-		const [rows] = await connection.query(sql, [bookingId, simid]);
+			"SELECT * FROM booking LEFT JOIN bookinglist ON booking.BookingID = bookinglist.BookingID LEFT JOIN simulatorschedule ON bookinglist.ScheduleID = simulatorschedule.ScheduleID LEFT JOIN simulatorlist ON booking.SimID = simulatorlist.SimID WHERE booking.bookingid = ? AND simulatorlist.simid = ? AND simulatorlist.hostid = ? ORDER BY simulatorschedule.StartTime";
+		const [rows] = await connection.query(sql, [bookingId, simid, hostid]);
 		return rows;
 	} catch (error) {
 		console.error("Error in hostScheduleFromBookingIDDB:", error);
 		return false;
+	} finally {
+		connection.release();
+	}
+}
+
+export async function hostConfirmBookingDB(bookingId, simid) {
+	const connection = await pool.getConnection();
+	try {
+		const sql =
+			"UPDATE booking SET StatusID = 2 WHERE BookingID = ? AND SimID = ? AND StatusID = 1";
+		const [rows] = await connection.query(sql, [bookingId, simid]);
+		return rows;
+	} catch (error) {
+		console.error("Error in hostConfirmBookingDB:", error);
+		return false;
+	}
+}
+
+export async function hostUploadSimulatorDB(simData, file1, file2, file3) {
+	const connection = await pool.getConnection();
+	try {
+		await connection.beginTransaction();
+		const sql =
+			"INSERT INTO simulatorlist (simlistname,priceperhour,listdescription,hostid,modid,firstimage,secondimage,thirdimage) VALUE (?,?,?,?,?,?,?,?)";
+		const [rows] = await connection.query(sql, [
+			simData.simlistname,
+			simData.priceperhour,
+			simData.listdescription,
+			simData.hostid,
+			simData.modid,
+			file1,
+			file2,
+			file3,
+		]);
+		if (rows.affectedRows === 0) {
+			throw new Error("Failed to insert simulatorlist");
+		}
+		const simid = rows.insertId;
+		const sqlType =
+			"INSERT INTO simulatortypelist (simid,simtypeid) VALUES (?,?)";
+		const [rowsType] = await connection.query(sqlType, [
+			simid,
+			simData.simtypeid,
+		]);
+		if (rowsType.affectedRows === 0) {
+			throw new Error("Failed to insert simulatortypelist");
+		}
+
+		await connection.commit();
+
+		return [simid, true];
+	} catch (error) {
+		console.error("Error in hostUploadSimulator:", error);
+		await connection.rollback();
+		return [-1, false];
 	} finally {
 		connection.release();
 	}
