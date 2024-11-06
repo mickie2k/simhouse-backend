@@ -12,6 +12,7 @@ dotenv.config();
 const app = express();
 const port = process.env.PORT;
 const jwt_secret = process.env.JWT_SECRET;
+const allowedOrigins = process.env.CORS_ORIGINS.split(',');
 
 app.use(cookieParser());
 app.use(express.json());
@@ -19,7 +20,7 @@ app.use(express.json());
 // app.use("/auth/*", ExpressAuth({ providers: [google] }));
 app.use(
 	cors({
-		origin: ["http://127.0.0.1:3000", "http://localhost:3000" , "https://simhouse-frontend.vercel.app/"],
+		origin: allowedOrigins,
 		credentials: true,
 	})
 );
