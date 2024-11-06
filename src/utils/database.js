@@ -9,6 +9,7 @@ async function initSQL() {
 		pool = mysql.createPool({
 			host: process.env.HOST,
 			user: process.env.DB_USER,
+			password: process.env.DB_PASS,
 			database: process.env.DB,
 			waitForConnections: true,
 			connectionLimit: 10, // Adjust the limit as necessary
