@@ -101,7 +101,12 @@ async function userRegister(req, res) {
 
 async function userLogout(req, res) {
 	try {
-		res.clearCookie("token");
+		res.clearCookie("token",{
+			httpOnly: true,
+            secure: process.env.NODE_ENV === 'production', // true in production for HTTPS
+            sameSite: "none", // Allows cross-origin cookies
+            maxAge: 0, // 4 hours
+		});
 		return res.json({ message: "Logout Success" });
 	} catch (error) {
 		res.status(500).json({
